@@ -1,0 +1,8 @@
+﻿
+> @openpims/db@0.1.0 db:migrate E:\openvpm\openvpm-main\packages\db
+> drizzle-kit migrate
+
+No config path provided, using default 'drizzle.config.ts'
+Reading config file 'E:\openvpm\openvpm-main\packages\db\drizzle.config.ts'
+Using 'postgres' driver for database querying
+[ÔúÀ] applying migrations...[2K[1G[ÔúÀ] applying migrations...ÔÇëELIFECYCLEÔÇë Command failed with exit code 1.

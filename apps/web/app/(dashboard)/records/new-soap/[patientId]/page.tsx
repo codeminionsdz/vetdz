@@ -1,0 +1,183 @@
+"use client";
+
+import { useState } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
+import { ArrowLeft, Save, ShieldAlert } from "lucide-react";
+import { trpc } from "@/lib/trpc";
+import { Button } from "@/components/ui/button";
+import { SoapNoteEditor } from "@/app/components/SoapNoteEditor";
+import { toast } from "sonner";
+
+export default function NewSoapNotePage() {
+  const params = useParams<{ patientId: string }>();
+  const router = useRouter();
+  const { data: session } = useSession();
+  const userRole = session?.user?.role;
+
+  if (userRole && userRole !== "admin" && userRole !== "veterinarian") {
+    return (
+      <div className="flex flex-col items-center justify-center py-24 text-center">
+        <ShieldAlert className="h-12 w-12 text-muted-foreground mb-4" />
+        <h2 className="font-heading text-xl font-semibold">Access Denied</h2>
+        <p className="text-sm text-muted-foreground mt-1">
+          Only veterinarians and administrators can create SOAP notes.
+        </p>
+        <Button
+          variant="outline"
+          className="mt-4"
+          onClick={() => router.push("/records")}
+        >
+          Back to Records
+        </Button>
+      </div>
+    );
+  }
+
+  const [subjective, setSubjective] = useState("");
+  const [objective, setObjective] = useState("");
+  const [assessment, setAssessment] = useState("");
+  const [plan, setPlan] = useState("");
+
+  const { data: patient, isLoading: patientLoading } =
+    trpc.patients.getById.useQuery(
+      { id: params.patientId },
+      { enabled: !!params.patientId }
+    );
+
+  const createNote = trpc.records.createSoapNote.useMutation({
+    onSuccess: () => {
+      toast.success("SOAP note created");
+      router.push("/records");
+    },
+    onError: (err) => {
+      toast.error(err.message);
+    },
+  });
+
+  function handleSave() {
+    if (!params.patientId) return;
+    createNote.mutate({
+      patientId: params.patientId,
+      subjective: subjective || undefined,
+      objective: objective || undefined,
+      assessment: assessment || undefined,
+      plan: plan || undefined,
+    });
+  }
+
+  if (patientLoading) {
+    return (
+      <div className="text-center text-muted-foreground py-12">Loading...</div>
+    );
+  }
+
+  return (
+    <div>
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => router.push("/records")}
+        className="mb-4"
+      >
+        <ArrowLeft className="mr-2 h-4 w-4" />
+        Back to Records
+      </Button>
+
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="font-heading text-xl font-semibold">New SOAP Note</h2>
+          {patient && (
+            <p className="text-sm text-muted-foreground">
+              Patient: {patient.name}
+              {patient.species
+                ? ` - ${patient.species.charAt(0).toUpperCase() + patient.species.slice(1)}`
+                : ""}
+              {patient.breed ? ` (${patient.breed})` : ""}
+            </p>
+          )}
+        </div>
+      </div>
+
+      <div className="mt-6 space-y-6">
+        <div className="rounded-lg border border-border bg-card p-6 space-y-6">
+          {/* Subjective */}
+          <div>
+            <label className="block text-sm font-medium mb-1.5">
+              Subjective
+            </label>
+            <p className="text-xs text-muted-foreground mb-2">
+              Owner&apos;s complaint, history, and symptoms reported
+            </p>
+            <SoapNoteEditor
+              value={subjective}
+              onChange={setSubjective}
+              placeholder="What the owner reports..."
+            />
+          </div>
+
+          {/* Objective */}
+          <div>
+            <label className="block text-sm font-medium mb-1.5">
+              Objective
+            </label>
+            <p className="text-xs text-muted-foreground mb-2">
+              Physical examination findings, vitals, and test results
+            </p>
+            <SoapNoteEditor
+              value={objective}
+              onChange={setObjective}
+              placeholder="Physical exam findings, vitals, lab results..."
+            />
+          </div>
+
+          {/* Assessment */}
+          <div>
+            <label className="block text-sm font-medium mb-1.5">
+              Assessment
+            </label>
+            <p className="text-xs text-muted-foreground mb-2">
+              Diagnosis or differential diagnoses
+            </p>
+            <SoapNoteEditor
+              value={assessment}
+              onChange={setAssessment}
+              placeholder="Diagnosis, differential diagnoses..."
+            />
+          </div>
+
+          {/* Plan */}
+          <div>
+            <label className="block text-sm font-medium mb-1.5">
+              Plan
+            </label>
+            <p className="text-xs text-muted-foreground mb-2">
+              Treatment plan, medications, follow-up instructions
+            </p>
+            <SoapNoteEditor
+              value={plan}
+              onChange={setPlan}
+              placeholder="Treatment plan, medications, follow-up..."
+            />
+          </div>
+        </div>
+
+        {/* Actions */}
+        <div className="flex items-center gap-3">
+          <Button onClick={handleSave} disabled={createNote.isPending}>
+            <Save className="mr-2 h-4 w-4" />
+            {createNote.isPending ? "Saving..." : "Save Note"}
+          </Button>
+          <Button variant="outline" onClick={() => router.push("/records")}>
+            Cancel
+          </Button>
+          {createNote.isError && (
+            <p className="text-sm text-destructive">
+              Failed to save: {createNote.error.message}
+            </p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
