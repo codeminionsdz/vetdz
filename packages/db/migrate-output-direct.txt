@@ -1,0 +1,4 @@
+﻿No config path provided, using default 'drizzle.config.ts'
+Reading config file 'C:\Users\codem\OneDrive\project\vetdz-main\vetdz-main\packages\db\drizzle.config.ts'
+Using 'postgres' driver for database querying
+[ÔúÀ] applying migrations...[2K[1G[ÔúÀ] applying migrations...
